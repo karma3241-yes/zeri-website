@@ -61,31 +61,4 @@
   }, { threshold: 0.3 });
   document.querySelectorAll('.tape').forEach(function (el) { tapeWatch.observe(el); });
 
-  // App showcase: choosing a step changes the phone screen
-  var steps = document.querySelectorAll('.app-steps button');
-  if (!steps.length) return;
-  var fallback = document.querySelector('.phone3d-fallback img');
-  var current = 0;
-  var touched = false;
-  function show(index) {
-    current = index;
-    steps.forEach(function (button, i) { button.setAttribute('aria-pressed', String(i === index)); });
-    var src = steps[index].dataset.shot;
-    fallback.src = src;
-    dispatchEvent(new CustomEvent('zeri:screen', { detail: src }));
-  }
-  steps.forEach(function (button, index) {
-    button.addEventListener('click', function () {
-      touched = true;
-      show(index);
-    });
-  });
-  var onScreen = false;
-  new IntersectionObserver(function (entries) { onScreen = entries[0].isIntersecting; }, { threshold: 0.4 })
-    .observe(document.querySelector('.showcase'));
-  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    setInterval(function () {
-      if (onScreen && !touched) show((current + 1) % steps.length);
-    }, 4500);
-  }
 })();

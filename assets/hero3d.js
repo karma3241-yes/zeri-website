@@ -1,5 +1,5 @@
 // Real-time 3D on Home. The hero uses two full-size layers, one behind the text and one in
-// front, so objects really pass behind and over the headline. The app showcase has the phone.
+// front, so objects really pass behind and over the headline.
 import * as THREE from 'three';
 import { SVGLoader } from 'three/addons/SVGLoader.js';
 import { RoomEnvironment } from 'three/addons/RoomEnvironment.js';
@@ -198,111 +198,6 @@ async function heroZ(backEl, frontEl) {
   dispatchEvent(new Event('zeri:ready'));
 }
 
-function roundedRect(w, h, r) {
-  const shape = new THREE.Shape();
-  const x = -w / 2;
-  const y = -h / 2;
-  shape.moveTo(x + r, y);
-  shape.lineTo(x + w - r, y);
-  shape.quadraticCurveTo(x + w, y, x + w, y + r);
-  shape.lineTo(x + w, y + h - r);
-  shape.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  shape.lineTo(x + r, y + h);
-  shape.quadraticCurveTo(x, y + h, x, y + h - r);
-  shape.lineTo(x, y + r);
-  shape.quadraticCurveTo(x, y, x + r, y);
-  return shape;
-}
-
-function appPhone(el) {
-  const s = stage(el, 28);
-  s.camera.position.set(0, 0, 8.4);
-  const key = new THREE.DirectionalLight('#ffffff', 2);
-  key.position.set(2, 3, 5);
-  const warm = new THREE.PointLight('#ff8a4c', 30, 16);
-  warm.position.set(-3, -2, 2);
-  s.scene.add(key, warm);
-
-  const W = 1.62;
-  const H = 3.3;
-  const rig = new THREE.Group();
-  const body = new THREE.Mesh(
-    new RoundedBoxGeometry(W, H, 0.17, 8, 0.075),
-    new THREE.MeshPhysicalMaterial({ color: '#0b2855', metalness: 0.65, roughness: 0.3, clearcoat: 1, clearcoatRoughness: 0.15 }),
-  );
-  rig.add(body);
-
-  const sw = W - 0.1;
-  const sh = H - 0.1;
-  const geometry = new THREE.ShapeGeometry(roundedRect(sw, sh, 0.1), 16);
-  const uv = geometry.attributes.uv;
-  const pos = geometry.attributes.position;
-  for (let i = 0; i < uv.count; i++) uv.setXY(i, pos.getX(i) / sw + 0.5, pos.getY(i) / sh + 0.5);
-  const screen = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: '#ffffff', toneMapped: false }));
-  screen.position.z = 0.09;
-  rig.add(screen);
-  s.scene.add(rig);
-
-  const loader = new THREE.TextureLoader();
-  const cache = {};
-  const load = (src) => {
-    if (!cache[src]) {
-      cache[src] = new Promise((resolve) => loader.load(src, (texture) => {
-        texture.colorSpace = THREE.SRGBColorSpace;
-        texture.anisotropy = s.renderer.capabilities.getMaxAnisotropy();
-        const image = texture.image.width / texture.image.height;
-        const frame = sw / sh;
-        if (image > frame) {
-          texture.repeat.set(frame / image, 1);
-          texture.offset.set((1 - frame / image) / 2, 0);
-        } else {
-          texture.repeat.set(1, image / frame);
-          texture.offset.set(0, 1 - image / frame);
-        }
-        resolve(texture);
-      }));
-    }
-    return cache[src];
-  };
-
-  let spin = 0;
-  let pending = null;
-  const setScreen = (texture) => {
-    screen.material.map = texture;
-    screen.material.needsUpdate = true;
-    s.draw();
-  };
-  addEventListener('zeri:screen', async (event) => {
-    const texture = await load(event.detail);
-    if (calm) { setScreen(texture); return; }
-    pending = texture;
-    spin = 1;
-  });
-
-  s.onFit = (aspect) => { s.camera.position.z = aspect < 0.62 ? 8.4 * (0.62 / aspect) : 8.4; };
-  let extra = 0;
-  s.tick = (t) => {
-    if (spin > 0) {
-      spin = Math.max(0, spin - 0.028);
-      extra = (1 - spin * spin) * Math.PI * 2;
-      if (pending && extra > Math.PI * 0.5) {
-        setScreen(pending);
-        pending = null;
-      }
-    } else {
-      extra = 0;
-    }
-    rig.rotation.y = (calm ? -0.3 : Math.sin(t * 0.5) * 0.32 - 0.12) + extra;
-    rig.rotation.x = 0.06;
-    rig.position.y = calm ? 0 : Math.sin(t * 0.9) * 0.05;
-  };
-
-  load(el.dataset.first).then((texture) => {
-    setScreen(texture);
-    s.start();
-  });
-}
-
 function canUse3D() {
   try {
     return !!document.createElement('canvas').getContext('webgl2');
@@ -318,14 +213,6 @@ function finished() {
 
 if (canUse3D()) {
   heroZ(document.getElementById('z3d'), document.getElementById('z3d-front')).catch(finished);
-  const phone = document.getElementById('phone3d');
-  // The phone starts once it is close to the screen
-  const wake = new IntersectionObserver((entries) => {
-    if (!entries[0].isIntersecting) return;
-    wake.disconnect();
-    appPhone(phone);
-  }, { rootMargin: '600px' });
-  wake.observe(phone);
 } else {
   finished();
 }
